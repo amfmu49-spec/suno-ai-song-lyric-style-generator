@@ -8,6 +8,7 @@ import {
   MOOD_OPTIONS,
 } from "../data/presets";
 import { Sparkles, Disc, Zap, Trophy, Music2 } from "lucide-react";
+import { generateSongWithAiOrFallback } from "../utils/lyricGenerator";
 
 function generateCreativeTitle(theme: string, genre: string): string {
   const prefixes = ["夜明けの", "約束の", "忘却の", "刹那の", "蒼穹の", "さよなら", "永遠の", "境界の", "微熱の", "追憶の", "星降る", "ラスト"];
@@ -77,54 +78,15 @@ export const GachaOverlay: React.FC<GachaOverlayProps> = ({
     let songResult: SongResult | null = null;
     let apiError: string | null = null;
 
-    // AI作詞 APIリクエスト呼び出し
-    fetch("/api/generate", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-api-key": apiKey
-      },
-      body: JSON.stringify({ ...request, userApiKey: apiKey }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "生成に失敗しました。APIキーを確認してください。");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        songResult = {
-          id: "song_" + Date.now(),
-          title: data.title,
-          lyrics: data.lyrics,
-          style_prompt: data.style_prompt,
-          bpm: data.bpm,
-          key: data.key,
-          createdAt: Date.now(),
-          isFavorite: false,
-          requestParams: request,
-        };
+    // AI作詞（Gemini API または 高機能AIフォールバック作詞エンジン）呼び出し
+    generateSongWithAiOrFallback(request, apiKey)
+      .then((res) => {
+        songResult = res;
         isApiDone = true;
       })
       .catch((err) => {
-        console.warn("API Call encountered issue, generating local fallback result:", err);
-        // 万が一エラーが起きてもガチャ結果を中断せず、安全に結果を提供するフォールバック
-        const fallbackTitle = generateCreativeTitle(randomTheme, randomGenre);
-        const fallbackLyrics = `[Verse 1]\n静かに流れる時間の中で\n${randomTheme}をそっと追いかけていた\n見慣れた街並み　揺れる光\n新しい風が通り抜けてゆく\n\n[Pre-Chorus]\n戸惑う気持ちを抱きしめたまま\n踏み出す一歩が未来を変える\n\n[Chorus]\n響け ${randomTheme}！ どこまでも遠くへ\n${randomGenre}のビートに乗せて叫ぶよ\n夢見た景色が今ここにある\n終わらない歌をあなたに届けたい\n\n[Verse 2]\nすれ違う人の波をかき分けて\n描いた地図を確かめてる\nあの日交わした約束の言葉\n今も胸の奥で輝いている\n\n[Outro]\nずっと奏で続けよう\n${randomTheme}とともに、明日へ`;
-        const fallbackStyle = `${randomGenre}, ${randomGender.includes("男性") ? "male vocal" : randomGender.includes("女性") ? "female vocal" : "duet vocal"}, ${randomTempo || "medium tempo"}, ${randomMood || "emotional"}, catchy melody, professional production`;
-
-        songResult = {
-          id: "song_" + Date.now(),
-          title: fallbackTitle,
-          lyrics: fallbackLyrics,
-          style_prompt: fallbackStyle,
-          bpm: "128 BPM",
-          key: "C Major",
-          createdAt: Date.now(),
-          isFavorite: false,
-          requestParams: request,
-        };
+        console.error("Lyrics generation error:", err);
+        apiError = err.message || "生成エラーが発生しました";
         isApiDone = true;
       });
 

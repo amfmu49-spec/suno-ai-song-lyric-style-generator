@@ -5,6 +5,7 @@ import { StartCover } from "./components/StartCover";
 import { SongResult } from "./types";
 import { STRICT_GENRES } from "./data/presets";
 import { Key, RotateCw, Sparkles, Music, ExternalLink, Copy, Check, RefreshCw } from "lucide-react";
+import { generateSongWithAiOrFallback } from "./utils/lyricGenerator";
 
 function generateCreativeTitle(theme: string, genre: string): string {
   const prefixes = ["夜明けの", "約束の", "忘却の", "刹那の", "蒼穹の", "さよなら", "永遠の", "境界の", "微熱の", "追憶の", "星降る", "ラスト"];
@@ -136,43 +137,26 @@ export default function App() {
     const mood = currentSong.requestParams?.mood || "";
 
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-        },
-        body: JSON.stringify({
+      const generated = await generateSongWithAiOrFallback(
+        {
           theme,
           genre: newCombinedGenre,
-          gender,
+          gender: gender as any,
           tempo,
           mood,
           language: "日本語",
-          userApiKey: apiKey,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("API生成失敗");
-      }
-
-      const data = await res.json();
+        },
+        apiKey
+      );
 
       const newSong: SongResult = {
-        ...currentSong,
+        ...generated,
         id: "song_" + Date.now(),
-        title: data.title,
-        lyrics: data.lyrics,
-        style_prompt: data.style_prompt,
-        bpm: data.bpm || currentSong.bpm,
-        key: data.key || currentSong.key,
-        createdAt: Date.now(),
         requestParams: {
           ...currentSong.requestParams,
           theme,
           genre: newCombinedGenre,
-          gender,
+          gender: gender as any,
         },
       };
 
@@ -181,31 +165,7 @@ export default function App() {
       localStorage.setItem(CURRENT_SONG_STORAGE, JSON.stringify(newSong));
       localStorage.setItem(CURRENT_GENRE_STORAGE, newCombinedGenre);
     } catch (err) {
-      console.warn("Okawari API fallback triggered:", err);
-
-      const fallbackTitle = generateCreativeTitle(theme, newCombinedGenre);
-      const fallbackLyrics = `[Verse 1]\n静かに重なり合う響きの中で\n${theme}の面影を追いかけていた\n交錯するビート　交わる光\n新しい風が通り抜けてゆく\n\n[Pre-Chorus]\n戸惑う気持ちを抱きしめたまま\n踏み出す一歩が未来を変える\n\n[Chorus]\n響け ${theme}！ どこまでも遠くへ\n${newCombinedGenre}のサウンドに乗せて叫ぶよ\n夢見た景色が今ここにある\n終わらない歌をあなたに届けたい\n\n[Verse 2]\nすれ違う人の波をかき分けて\n描いた地図を確かめてる\nあの日交わした約束の言葉\n今も胸の奥で輝いている\n\n[Outro]\nずっと奏で続けよう\n${theme}とともに、明日へ`;
-      const fallbackStyle = `${newCombinedGenre}, ${gender.includes("男性") ? "male vocal" : gender.includes("女性") ? "female vocal" : "duet vocal"}, ${tempo || "medium tempo"}, ${mood || "emotional"}, catchy melody, professional production`;
-
-      const fallbackSong: SongResult = {
-        ...currentSong,
-        id: "song_" + Date.now(),
-        title: fallbackTitle,
-        lyrics: fallbackLyrics,
-        style_prompt: fallbackStyle,
-        createdAt: Date.now(),
-        requestParams: {
-          ...currentSong.requestParams,
-          theme,
-          genre: newCombinedGenre,
-          gender,
-        },
-      };
-
-      setCurrentSong(fallbackSong);
-      setCurrentGenre(newCombinedGenre);
-      localStorage.setItem(CURRENT_SONG_STORAGE, JSON.stringify(fallbackSong));
-      localStorage.setItem(CURRENT_GENRE_STORAGE, newCombinedGenre);
+      console.error("Okawari generation error:", err);
     } finally {
       setIsOkawariLoading(false);
     }

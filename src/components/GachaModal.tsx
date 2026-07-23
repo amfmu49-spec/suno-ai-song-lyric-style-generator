@@ -8,17 +8,20 @@ import {
   MOOD_OPTIONS,
 } from "../data/presets";
 import { Sparkles, Disc, Music, Zap, Trophy, Flame } from "lucide-react";
+import { generateSongWithAiOrFallback } from "../utils/lyricGenerator";
 
 interface GachaModalProps {
   isOpen: boolean;
   onComplete: (song: SongResult) => void;
   onClose: () => void;
+  apiKey?: string;
 }
 
 export const GachaModal: React.FC<GachaModalProps> = ({
   isOpen,
   onComplete,
   onClose,
+  apiKey = "",
 }) => {
   const [phase, setPhase] = useState<"spinning" | "opening" | "revealing" | "error">("spinning");
   const [slotTheme, setSlotTheme] = useState("???");
@@ -67,34 +70,14 @@ export const GachaModal: React.FC<GachaModalProps> = ({
     let songResult: SongResult | null = null;
     let apiError: string | null = null;
 
-    // Call API in background
-    fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "Generation failed.");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        songResult = {
-          id: "song_" + Date.now(),
-          title: data.title,
-          lyrics: data.lyrics,
-          style_prompt: data.style_prompt,
-          bpm: data.bpm,
-          key: data.key,
-          createdAt: Date.now(),
-          isFavorite: false,
-          requestParams: request,
-        };
+    // AI作詞（Gemini API または 高機能AIフォールバック作詞エンジン）呼び出し
+    generateSongWithAiOrFallback(request, apiKey)
+      .then((res) => {
+        songResult = res;
         isApiDone = true;
       })
       .catch((err) => {
+        console.error("Gacha generation error:", err);
         apiError = err.message || "ガチャ生成エラーが発生しました";
         isApiDone = true;
       });
