@@ -4,7 +4,7 @@ import { GachaOverlay } from "./components/GachaOverlay";
 import { StartCover } from "./components/StartCover";
 import { SongResult } from "./types";
 import { STRICT_GENRES } from "./data/presets";
-import { Key, RotateCw, Sparkles, Music, ExternalLink, Copy, Check, RefreshCw } from "lucide-react";
+import { Key, RotateCw, Sparkles, Music, ExternalLink, Copy, Check, RefreshCw, Eye, EyeOff, Save, Trash2 } from "lucide-react";
 import { generateSongWithAiOrFallback } from "./utils/lyricGenerator";
 
 function generateCreativeTitle(theme: string, genre: string): string {
@@ -29,11 +29,41 @@ const CURRENT_SONG_STORAGE = "amu_gacha_current_song_v2";
 const CURRENT_THEME_STORAGE = "amu_gacha_current_theme_v2";
 const CURRENT_GENRE_STORAGE = "amu_gacha_current_genre_v2";
 
+const getStoredApiKey = (): string => {
+  try {
+    return (
+      localStorage.getItem(API_KEY_STORAGE) ||
+      localStorage.getItem("amu_gacha_api_key") ||
+      sessionStorage.getItem(API_KEY_STORAGE) ||
+      ""
+    );
+  } catch {
+    return "";
+  }
+};
+
+const saveStoredApiKey = (val: string) => {
+  try {
+    const clean = val.trim();
+    if (clean) {
+      localStorage.setItem(API_KEY_STORAGE, clean);
+      localStorage.setItem("amu_gacha_api_key", clean);
+      sessionStorage.setItem(API_KEY_STORAGE, clean);
+    } else {
+      localStorage.removeItem(API_KEY_STORAGE);
+      localStorage.removeItem("amu_gacha_api_key");
+      sessionStorage.removeItem(API_KEY_STORAGE);
+    }
+  } catch (e) {
+    console.warn("Storage save error:", e);
+  }
+};
+
 export default function App() {
-  // APIキーの状態管理
-  const [apiKey, setApiKey] = useState<string>(() => {
-    return localStorage.getItem(API_KEY_STORAGE) || "";
-  });
+  // APIキーの状態管理（localStorage / sessionStorage から自動復元）
+  const [apiKey, setApiKey] = useState<string>(getStoredApiKey);
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
+  const [keySaveToast, setKeySaveToast] = useState<boolean>(false);
 
   // ガチャで決定・生成された結果データ（localStorageから復元）
   const [currentSong, setCurrentSong] = useState<SongResult | null>(() => {
@@ -78,11 +108,24 @@ export default function App() {
     });
   };
 
-  // APIキーの変更保存
+  // APIキーのリアルタイム変更 & 永久保存
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setApiKey(val);
-    localStorage.setItem(API_KEY_STORAGE, val);
+    saveStoredApiKey(val);
+  };
+
+  // APIキーの手動保存ボタン
+  const handleSaveApiKey = () => {
+    saveStoredApiKey(apiKey);
+    setKeySaveToast(true);
+    setTimeout(() => setKeySaveToast(false), 2500);
+  };
+
+  // APIキーの手動クリアボタン
+  const handleClearApiKey = () => {
+    setApiKey("");
+    saveStoredApiKey("");
   };
 
   // カバー画面タップ時にガチャ演出画面へ遷移
@@ -207,21 +250,64 @@ export default function App() {
 
         {/* APIキー入力エリア（紫・青・ピンク グラデーション枠線） */}
         <div className="p-[1.5px] rounded-2xl bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 shadow-sm">
-          <div className="bg-white rounded-[14px] p-4 space-y-2">
+          <div className="bg-white rounded-[14px] p-4 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-1.5">
                 <Key className="w-4 h-4 text-purple-600" />
-                <span>Gemini APIキー (推奨)</span>
+                <span>Gemini APIキー (永久保存)</span>
               </label>
-              <span className="text-[10px] text-slate-400">※未入力時はDEMOモード動作</span>
+              <span className="text-[10px] text-slate-400">※ブラウザに自動保存されます</span>
             </div>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={handleApiKeyChange}
-              placeholder="AI Studioで取得したGemini APIキーを入力 (AIzaSy...)"
-              className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors"
-            />
+
+            <div className="relative flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={handleApiKeyChange}
+                  autoComplete="off"
+                  name="amu_gacha_gemini_api_key"
+                  placeholder="AI Studioで取得したGemini APIキーを入力 (AIzaSy...)"
+                  className="w-full p-2.5 pr-10 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                  title={showApiKey ? "キーを隠す" : "キーを表示"}
+                >
+                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveApiKey}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1 cursor-pointer shrink-0"
+                title="ブラウザに固定保存"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>保存</span>
+              </button>
+
+              {apiKey && (
+                <button
+                  type="button"
+                  onClick={handleClearApiKey}
+                  className="bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 p-2.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                  title="保存したキーを削除"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {keySaveToast && (
+              <div className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 flex items-center gap-1.5 animate-bounce">
+                <Check className="w-3.5 h-3.5" />
+                <span>APIキーをブラウザに永続保存しました！次回アクセス時も自動適用されます。</span>
+              </div>
+            )}
 
             {!apiKey ? (
               <div className="mt-2 p-3.5 rounded-xl bg-gradient-to-r from-purple-950 via-slate-900 to-pink-950 border border-pink-500/50 text-white text-xs space-y-2 shadow-xl">
