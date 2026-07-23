@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+/* スマホ実機でテキストエリア/入力欄タップ時に画面がズーム（アップ）するのを防止 */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  input[type="email"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
