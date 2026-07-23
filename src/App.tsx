@@ -24,46 +24,96 @@ function generateCreativeTitle(theme: string, genre: string): string {
   }
 }
 
-const API_KEY_STORAGE = "user_gemini_api_key_v1";
 const CURRENT_SONG_STORAGE = "amu_gacha_current_song_v2";
 const CURRENT_THEME_STORAGE = "amu_gacha_current_theme_v2";
 const CURRENT_GENRE_STORAGE = "amu_gacha_current_genre_v2";
 
-const getStoredApiKey = (): string => {
+const ALL_STORAGE_KEYS = [
+  "user_gemini_api_key_v1",
+  "amu_gacha_api_key",
+  "gemini_api_key_universal",
+  "VITE_GEMINI_KEY",
+  "gemini_key"
+];
+
+const getCookieKey = (): string => {
   try {
-    return (
-      localStorage.getItem(API_KEY_STORAGE) ||
-      localStorage.getItem("amu_gacha_api_key") ||
-      sessionStorage.getItem(API_KEY_STORAGE) ||
-      ""
-    );
+    const match = document.cookie.match(/(?:^|; )amu_gemini_key=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : "";
   } catch {
     return "";
   }
 };
 
+const setCookieKey = (val: string) => {
+  try {
+    if (val) {
+      const expires = "expires=Fri, 31 Dec 9999 23:59:59 GMT";
+      document.cookie = `amu_gemini_key=${encodeURIComponent(val)}; ${expires}; path=/; SameSite=Strict`;
+    } else {
+      document.cookie = `amu_gemini_key=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict`;
+    }
+  } catch (e) {
+    console.warn("Cookie save error:", e);
+  }
+};
+
+const getStoredApiKey = (): string => {
+  try {
+    // 1. クッキーから最優先復元（バージョンアップ時も絶対に消えません）
+    const fromCookie = getCookieKey();
+    if (fromCookie && fromCookie.trim().length > 5) return fromCookie.trim();
+
+    // 2. 全 localStorage キーから探索復元
+    for (const key of ALL_STORAGE_KEYS) {
+      const val = localStorage.getItem(key);
+      if (val && val.trim().length > 5) return val.trim();
+    }
+
+    // 3. 全 sessionStorage キーから探索復元
+    for (const key of ALL_STORAGE_KEYS) {
+      const val = sessionStorage.getItem(key);
+      if (val && val.trim().length > 5) return val.trim();
+    }
+  } catch (e) {
+    console.warn("Storage read error:", e);
+  }
+  return "";
+};
+
 const saveStoredApiKey = (val: string) => {
   try {
     const clean = val.trim();
-    if (clean) {
-      localStorage.setItem(API_KEY_STORAGE, clean);
-      localStorage.setItem("amu_gacha_api_key", clean);
-      sessionStorage.setItem(API_KEY_STORAGE, clean);
-    } else {
-      localStorage.removeItem(API_KEY_STORAGE);
-      localStorage.removeItem("amu_gacha_api_key");
-      sessionStorage.removeItem(API_KEY_STORAGE);
-    }
+    setCookieKey(clean);
+
+    ALL_STORAGE_KEYS.forEach((key) => {
+      if (clean) {
+        localStorage.setItem(key, clean);
+        sessionStorage.setItem(key, clean);
+      } else {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      }
+    });
   } catch (e) {
     console.warn("Storage save error:", e);
   }
 };
 
 export default function App() {
-  // APIキーの状態管理（localStorage / sessionStorage から自動復元）
+  // APIキーの状態管理（Cookie + Multi-Storage から自動復元）
   const [apiKey, setApiKey] = useState<string>(getStoredApiKey);
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [keySaveToast, setKeySaveToast] = useState<boolean>(false);
+
+  // 初回マウント時に多重ストレージ/クッキーから自動同期・復元
+  useEffect(() => {
+    const saved = getStoredApiKey();
+    if (saved && saved !== apiKey) {
+      setApiKey(saved);
+      saveStoredApiKey(saved);
+    }
+  }, []);
 
   // ガチャで決定・生成された結果データ（localStorageから復元）
   const [currentSong, setCurrentSong] = useState<SongResult | null>(() => {
