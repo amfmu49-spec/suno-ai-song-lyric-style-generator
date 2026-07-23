@@ -202,13 +202,37 @@ export const LyricsDisplay: React.FC<LyricsDisplayProps> = ({
   const promptLength = editedPrompt.length;
   const isPromptTooLong = promptLength > 120;
 
+  const isDemoMode = song.isDemo || song.title.includes("[DEMO]");
+
   return (
     <div className="space-y-6">
+      {/* 0. DEMO Mode Guidance Banner */}
+      {isDemoMode && (
+        <div className="bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-pink-500/20 border border-amber-500/50 rounded-2xl p-4 sm:p-5 text-amber-200 shadow-xl space-y-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+              DEMO モード
+            </span>
+            <span className="text-xs font-bold text-amber-300">
+              ※現在はAPIキー未設定のためデモ用の構成サンプルを表示しています
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium">
+            💡 画面最上部の <strong>「APIキー入力」</strong> 欄に無料の <strong>Gemini APIキー</strong> を入力すると、AIプロデューサーが毎回完全オリジナルの超高クオリティなフル歌詞・タイトルをリアルタイム自動生成します！
+          </p>
+        </div>
+      )}
+
       {/* 1. Header Banner */}
       <div className="bg-slate-900/90 rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
+              {isDemoMode && (
+                <span className="bg-rose-500/20 text-rose-300 font-bold text-xs px-2.5 py-0.5 rounded-full border border-rose-500/40">
+                  DEMOサンプル
+                </span>
+              )}
               <span className="bg-amber-500/10 text-amber-400 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-500/20">
                 {song.requestParams.genre}
               </span>

@@ -1,7 +1,7 @@
 import { SongResult, GachaRequest } from "../types";
 
 // エレガント・エモーショナルな楽曲タイトル生成関数
-export function generateCreativeTitle(theme: string, genre: string): string {
+export function generateCreativeTitle(theme: string, genre: string, isDemo: boolean = false): string {
   const poeticPrefixes = [
     "群青の", "真夜中の", "残響の", "透明な", "流星の", "深海の", "螺旋の", "緋色の",
     "幻影の", "無重力の", "幾千の", "二月の", "さよなら", "微熱の", "月光の", "追憶の",
@@ -36,18 +36,21 @@ export function generateCreativeTitle(theme: string, genre: string): string {
   ];
 
   const rand = Math.random();
+  let rawTitle = "";
   if (rand < 0.35) {
     const p = poeticPrefixes[Math.floor(Math.random() * poeticPrefixes.length)];
     const n = poeticNouns[Math.floor(Math.random() * poeticNouns.length)];
-    return `${p}${n}`;
+    rawTitle = `${p}${n}`;
   } else if (rand < 0.70) {
-    return evocativePhrases[Math.floor(Math.random() * evocativePhrases.length)];
+    rawTitle = evocativePhrases[Math.floor(Math.random() * evocativePhrases.length)];
   } else {
-    return englishTitles[Math.floor(Math.random() * englishTitles.length)];
+    rawTitle = englishTitles[Math.floor(Math.random() * englishTitles.length)];
   }
+
+  return isDemo ? `[DEMO] ${rawTitle}` : rawTitle;
 }
 
-// 多様な歌詞パターンを動的に自動生成するリッチフォールバックジェネレーター
+// フル構成（11セクション）対応の動的デモ用歌詞ジェネレーター
 export function generateDynamicFallbackLyrics(
   theme: string,
   genre: string,
@@ -55,9 +58,15 @@ export function generateDynamicFallbackLyrics(
   tempo: string = "",
   mood: string = ""
 ): { title: string; lyrics: string; style_prompt: string; bpm: string; key: string } {
-  const title = generateCreativeTitle(theme, genre);
+  const title = generateCreativeTitle(theme, genre, true);
 
-  // テーマと言語感に応じた多彩なフレーズライブラリ
+  const introLines = [
+    `(Soft piano melody fading in)`,
+    `(Synthesizer pulse with ambient reverb)`,
+    `(Acoustic guitar arpeggio)`,
+    `(Energetic drum roll and bass groove)`
+  ];
+
   const verse1Lines = [
     [
       `静寂を切り裂く　${theme}の気配`,
@@ -70,22 +79,10 @@ export function generateDynamicFallbackLyrics(
       `ネオンの海に浮かんでは消える影`,
       `誰も知らない秘密のフレーズ`,
       `胸の奥でひっそりと息を潜めている`
-    ],
-    [
-      `風が運んできた　${theme}の予感`,
-      `見上げた空　滲む星の輝き`,
-      `言葉にできない感情の渦が`,
-      `静かに色を変えて広がっていく`
-    ],
-    [
-      `ガラス越しに映る　${theme}の残像`,
-      `冷めたコーヒーを握りしめたまま`,
-      `途切れた記憶の先を探している`,
-      `あの日選ばなかった選択肢の答えを`
     ]
   ];
 
-  const preChorusLines = [
+  const preChorus1Lines = [
     [
       `戸惑いも迷いも　すべて包み込んで`,
       `踏み出す一歩が　世界を塗り替える`
@@ -93,18 +90,10 @@ export function generateDynamicFallbackLyrics(
     [
       `もう振り返らないと　心に決めたから`,
       `解き放たれる衝動　解き放つシグナル`
-    ],
-    [
-      `かすかな期待が　熱を帯びていく`,
-      `始まる物語のページをめくるように`
-    ],
-    [
-      `加速する鼓動　引き止められない`,
-      `限界の向こう側へ　手を伸ばす`
     ]
   ];
 
-  const chorusLines = [
+  const chorus1Lines = [
     [
       `響け ${theme}！ どこまでも高く`,
       `${genre}のビートに乗せて未来を叫ぶよ`,
@@ -116,7 +105,36 @@ export function generateDynamicFallbackLyrics(
       `重なるシンパシー　共鳴するこの声で`,
       `誰にも奪えない　真実を刻みつけろ`,
       `二度と来ない今を　全力で走り抜けたい`
+    ]
+  ];
+
+  const verse2Lines = [
+    [
+      `すれ違う人波を　かき分けて進む`,
+      `重ねた失敗も　足跡に変わっていく`,
+      `握りしめた拳のぬくもりを信じて`,
+      `自分だけの答えを　描き続けている`
     ],
+    [
+      `ビル風が吹き抜ける　交差点の真ん中で`,
+      `描いた地図の続きを　確かめ合っていた`,
+      `傷つくことを恐れた　昨日の僕にバイバイ`,
+      `新しい空を仰ぎ　息を深く吸い込む`
+    ]
+  ];
+
+  const preChorus2Lines = [
+    [
+      `途切れた夢の欠片　ひとつずつ繋ぎ合わせて`,
+      `静かに熱を帯びていく　抑えきれない情熱`
+    ],
+    [
+      `かすかな期待が　確信へと変わるとき`,
+      `加速する鼓動が　限界の壁をぶち破る`
+    ]
+  ];
+
+  const chorus2Lines = [
     [
       `舞い上がれ ${theme}！ 風を追い越して`,
       `信じたメロディ　世界中に届くまで`,
@@ -131,27 +149,6 @@ export function generateDynamicFallbackLyrics(
     ]
   ];
 
-  const verse2Lines = [
-    [
-      `すれ違う人波を　かき分けて進む`,
-      `重ねた失敗も　足跡に変わっていく`,
-      `握りしめた拳のnくもりを信じて`,
-      `自分だけの答えを　描き続けている`
-    ],
-    [
-      `ビル風が吹き抜ける　交差点の真ん中で`,
-      `描いた地図の続きを　確かめ合っていた`,
-      `傷つくことを恐れた　昨日の僕にバイバイ`,
-      `新しい空を仰ぎ　息を深く吸い込む`
-    ],
-    [
-      `遠ざかる過去のノイズを　振り払うように`,
-      `まっすぐな眼差しで　明日を見つめる`,
-      `小さな光でも　集まれば輝きになる`,
-      `僕らの歩幅で　一歩ずつ前へ`
-    ]
-  ];
-
   const bridgeLines = [
     [
       `たとえ世界が　明日終わるとしても`,
@@ -162,11 +159,21 @@ export function generateDynamicFallbackLyrics(
       `暗闇の中でこそ　見える星がある`,
       `迷い抜いた夜の数だけ　強くなれる`,
       `ここから始まる　新しい時代へ`
-    ],
+    ]
+  ];
+
+  const soloLines = [
+    `(Powerful Guitar Solo with emotional overdrive)`,
+    `(Epic Synth Solo bursting into high tempo rhythm)`,
+    `(Dynamic Bass & Drum Breakdown Solo)`
+  ];
+
+  const finalChorusLines = [
     [
-      `言葉を超えて　心に直接語りかける`,
-      `溢れ出すメロディが　奇跡を呼び覚ます`,
-      `さあ、解き放とう　解き放たれた未来へ`
+      `叫べ ${theme}！ 幾千の夜を超えて`,
+      `響き渡る声が　奇跡を呼び覚ます`,
+      `二度と離さない　この手を繋ぎしめて`,
+      `新しい光のほうへ　共に走り出そう`
     ]
   ];
 
@@ -174,40 +181,22 @@ export function generateDynamicFallbackLyrics(
     [
       `ずっと奏で続けよう`,
       `${theme}とともに、どこまでも`,
-      `響き渡る声が　明日の光へ`
-    ],
-    [
-      `消えない想いを抱きしめて`,
-      `僕らの ${theme} は終わらない`,
-      `輝く未来へ、踏み出そう`
-    ],
-    [
-      `La La La... 風に乗せて`,
-      `${theme}の歌を未来へ届けて`,
-      `ありがとう、この場所で`
+      `響き渡る声が　明日の光へ`,
+      `(Fade out with ambient synth echo)`
     ]
   ];
 
-  // ランダム選択
   const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
-  const v1 = pick(verse1Lines).join("\n");
-  const pre = pick(preChorusLines).join("\n");
-  const chorus = pick(chorusLines).join("\n");
-  const v2 = pick(verse2Lines).join("\n");
-  const bridge = pick(bridgeLines).join("\n");
-  const outro = pick(outroLines).join("\n");
+  const lyrics = `[Intro]\n${pick(introLines)}\n\n[Verse 1]\n${pick(verse1Lines).join("\n")}\n\n[Pre-Chorus]\n${pick(preChorus1Lines).join("\n")}\n\n[Chorus]\n${pick(chorus1Lines).join("\n")}\n\n[Verse 2]\n${pick(verse2Lines).join("\n")}\n\n[Pre-Chorus]\n${pick(preChorus2Lines).join("\n")}\n\n[Chorus]\n${pick(chorus2Lines).join("\n")}\n\n[Bridge]\n${pick(bridgeLines).join("\n")}\n\n[Solo]\n${pick(soloLines)}\n\n[Final Chorus]\n${pick(finalChorusLines).join("\n")}\n\n[Outro]\n${pick(outroLines).join("\n")}`;
 
-  const lyrics = `[Verse 1]\n${v1}\n\n[Pre-Chorus]\n${pre}\n\n[Chorus]\n${chorus}\n\n[Verse 2]\n${v2}\n\n[Bridge]\n${bridge}\n\n[Outro]\n${outro}`;
-
-  // ボーカル表記の英訳
   const vocalTag = gender.includes("男性")
     ? "male vocal"
     : gender.includes("女性")
     ? "female vocal"
     : "duet vocal";
 
-  const style_prompt = `${genre}, ${vocalTag}, ${tempo || "fast tempo"}, ${mood || "energetic, emotional"}, catchy melody, punchy drums, synth bass, professional production`;
+  const style_prompt = `${genre}, ${vocalTag}, ${tempo || "fast tempo"}, ${mood || "energetic, emotional"}, full arrangement, catchy melody, punchy drums, synth bass, professional production`;
 
   const bpms = ["120 BPM", "128 BPM", "135 BPM", "140 BPM", "115 BPM", "125 BPM"];
   const keys = ["C Major", "A Minor", "G Major", "E Minor", "F Major", "D Minor"];
@@ -241,7 +230,7 @@ async function callGeminiDirectRest(apiKey: string, prompt: string, systemInstru
               type: "OBJECT",
               properties: {
                 title: { type: "STRING", description: "詩的で情緒のある印象的な楽曲タイトル" },
-                lyrics: { type: "STRING", description: "[Verse 1]等を含む作詞" },
+                lyrics: { type: "STRING", description: "[Intro], [Verse 1], [Pre-Chorus], [Chorus], [Verse 2], [Pre-Chorus], [Chorus], [Bridge], [Solo], [Final Chorus], [Outro] を含む本格フル作詞" },
                 style_prompt: { type: "STRING", description: "Suno AI用スタイルの英文カンマ区切り" },
                 bpm: { type: "STRING", description: "推奨BPM" },
                 key: { type: "STRING", description: "推奨Key" }
@@ -286,18 +275,31 @@ export async function generateSongWithAiOrFallback(
     try {
       console.log("Calling Gemini API directly from browser with user API key...");
       const systemInstruction = `あなたはプロの作詞家であり、日本を代表する最高峰の音楽プロデューサーです。
-ユーザーから渡された「テーマ」「ジャンル」「性別」などのキーワードに基づき、Suno AI用の楽曲の「タイトル」「歌詞」「スタイルプロンプト」を作成してください。
+ユーザーから渡された「テーマ」「ジャンル」「性別」などのキーワードに基づき、Suno AI用の本格フル楽曲の「タイトル」「歌詞」「スタイルプロンプト」を作成してください。
+
+【重要：構成ルール】
+必ず以下の「本格フル楽曲構成（10〜11セクション）」で長大・充実した歌詞を作成してください。
+1. [Intro]（前奏・インスト指示）
+2. [Verse 1]（1番 Aメロ）
+3. [Pre-Chorus]（1番 Bメロ）
+4. [Chorus]（1番 サビ）
+5. [Verse 2]（2番 Aメロ）
+6. [Pre-Chorus]（2番 Bメロ）
+7. [Chorus]（2番 サビ）
+8. [Bridge]（Cメロ・展開部）
+9. [Guitar Solo] または [Synth Solo]（間奏インストソロ指示）
+10. [Final Chorus]（ラスサビ・クライマックス）
+11. [Outro]（アウトロ・後奏）
 
 【ルール】
 1. タイトル (title):
-   - 【最重要】「${theme}の${genre}」や単に「${theme}」を繋げただけの単調で安直な命名は絶対に禁止です。
-   - 楽曲の世界観、ストーリー、切なさや高揚感が伝わる、詩的で洗練された最高にセンスのあるタイトル（例: 「群青に沈むクロノスタシス」「二月のエンドロール」「解き放たれたプロトコル」「さよならミッドナイト」「零れ落ちた星屑の証明」など）を考案してください。
+   - 「${theme}の${genre}」のような単調で安直な命名は厳禁。
+   - 楽曲の世界観やストーリーが深く感じられる、最高に詩的で洗練されたタイトル（例: 「群青に沈むクロノスタシス」「二月のエンドロール」「解き放たれたプロトコル」「さよならミッドナイト」等）を考案してください。
 2. 歌詞 (lyrics):
-   - [Verse 1], [Pre-Chorus], [Chorus], [Verse 2], [Bridge], [Outro] などのセクション名（英語の角括弧タグ）を必ず含めてください。
-   - 語り・ナレーション・セリフは含めず、純粋な歌唱用歌詞（メロディに乗るフレーズ）のみで構成してください。
-   - 指定されたボーカル視点（一人称：僕/私/俺）や雰囲気を自然に反映させ、日本語で情緒豊かに書いてください。
+   - 語り・ナレーションは含めず、純粋な歌唱用歌詞（メロディに乗るフレーズ）のみで構成してください。
+   - 日本語で情緒豊かに深く書き込んでください。
 3. スタイルプロンプト (style_prompt):
-   - Suno AIで高クオリティな楽曲を生成するためのカンマ区切りの英文プロンプト（ジャンル、ボーカルタイプ、楽器構成、テンポ、雰囲気）を120文字程度で作成してください。`;
+   - Suno AIで高クオリティなフル楽曲を生成するためのカンマ区切りの英文プロンプトを120文字程度で作成してください。`;
 
       const userPrompt = `【曲のパラメータ】
 - テーマ: ${theme}
@@ -322,15 +324,12 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
           key: data.key || "C Major",
           createdAt: Date.now(),
           isFavorite: false,
+          isDemo: false,
           requestParams: request
         };
       }
     } catch (err: any) {
       console.error("Gemini Direct API call failed:", err);
-      // APIキーのエラーがある場合は alert でユーザーに分かりやすく通知
-      if (err.message && (err.message.includes("API Error") || err.message.includes("400") || err.message.includes("403") || err.message.includes("429"))) {
-        console.warn("User API key encountered error, falling back to dynamic lyric generator.");
-      }
     }
   }
 
@@ -356,6 +355,7 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
         key: data.key || "C Major",
         createdAt: Date.now(),
         isFavorite: false,
+        isDemo: false,
         requestParams: request
       };
     }
@@ -363,7 +363,7 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
     console.log("Static environment detected, using dynamic fallback lyric engine.");
   }
 
-  // 3. APIなし/静的ホスティング環境向けの高品質・詩的タイトル＆多様化ダイナミックAIフォールバック
+  // 3. APIなし/静的ホスティング環境向けの高品質 DEMO 歌詞・タイトル＆フル構成フォールバック
   const fallbackData = generateDynamicFallbackLyrics(theme, genre, gender, tempo, mood);
   return {
     id: "song_" + Date.now(),
@@ -374,6 +374,8 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
     key: fallbackData.key,
     createdAt: Date.now(),
     isFavorite: false,
+    isDemo: true,
+    notice: "※現在はDEMO（サンプル）形式です。画面上部にGemini APIキーを設定すると、AIが毎回完全オリジナルの高クオリティなフル歌詞を即座に生成します。",
     requestParams: request
   };
 }

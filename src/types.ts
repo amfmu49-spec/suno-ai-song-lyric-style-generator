@@ -19,6 +19,8 @@ export interface SongResult {
   key?: string;
   createdAt: number;
   isFavorite?: boolean;
+  isDemo?: boolean;
+  notice?: string;
   requestParams: SongRequest;
 }
 
