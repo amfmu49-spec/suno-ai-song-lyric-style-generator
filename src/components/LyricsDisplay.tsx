@@ -206,19 +206,19 @@ export const LyricsDisplay: React.FC<LyricsDisplayProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 0. DEMO Mode Guidance Banner */}
+      {/* 0. DEMO Mode Guidance Banner / Notice Banner */}
       {isDemoMode && (
         <div className="bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-pink-500/20 border border-amber-500/50 rounded-2xl p-4 sm:p-5 text-amber-200 shadow-xl space-y-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-              DEMO モード
+              {song.notice && song.notice.includes("通信エラー") ? "API注意" : "DEMO モード"}
             </span>
             <span className="text-xs font-bold text-amber-300">
-              ※現在はAPIキー未設定のためデモ用の構成サンプルを表示しています
+              {song.notice || "※現在はAPIキー未設定のためデモ用の構成サンプルを表示しています"}
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium">
-            💡 画面最上部の <strong>「APIキー入力」</strong> 欄に無料の <strong>Gemini APIキー</strong> を入力すると、AIプロデューサーが毎回完全オリジナルの超高クオリティなフル歌詞・タイトルをリアルタイム自動生成します！
+            💡 画面最上部の <strong>「APIキー入力」</strong> 欄に無料の <strong>Gemini APIキー</strong> (<code>AIzaSy...</code>) を入力して「保存」を押すと、AIプロデューサーが毎回完全オリジナルの超高クオリティなフル歌詞・タイトルをリアルタイム自動生成します！
           </p>
         </div>
       )}

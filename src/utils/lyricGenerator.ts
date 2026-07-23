@@ -212,7 +212,7 @@ export function generateDynamicFallbackLyrics(
     ],
     [
       `貫け ${theme}！ 嵐の中で`,
-      `倒れても何度でも　立ち上がるんだ`,
+      `倒れても何度でも立ち上がるんだ`,
       `信じた道が　正解に変わるまで`,
       `胸の中の火を　絶対に絶やすな`
     ]
@@ -230,7 +230,7 @@ export function generateDynamicFallbackLyrics(
       `ビル風が吹き抜ける　交差点の真ん中で`,
       `描いた地図の続きを　確かめ合っていた`,
       `傷つくことを恐れた　昨日の僕にバイバイ`,
-      `新しい空を仰ぎ　息を深く吸い込む`
+      `新しい空を仰ぎ息を深く吸い込む`
     ],
     [
       `遠ざかる過去のノイズを　振り払うように`,
@@ -376,7 +376,7 @@ export function generateDynamicFallbackLyrics(
       `さあ、解き放とう　解き放たれた未来へ`
     ],
     [
-      `時に傷つき　立ち止まることもあったけれど`,
+      `時に傷つき立ち止まることもあったけれど`,
       `孤独な夜を乗り越えて　僕らは強くなった`,
       `さあ目を開けて　光の差す方へ`
     ],
@@ -554,35 +554,34 @@ export function generateDynamicFallbackLyrics(
 
 // 直接 REST API で Gemini API を呼び出す信頼性の高い非同期関数
 async function callGeminiDirectRest(apiKey: string, prompt: string, systemInstruction: string): Promise<any> {
-  const cleanKey = apiKey.trim();
+  const cleanKey = apiKey.replace(/["'\s]/g, "");
+  if (!cleanKey || cleanKey.length < 10) {
+    throw new Error("無効なAPIキーフォーマットです。AI Studioのキー(AIzaSy...)を入力してください。");
+  }
+
   const models = ["gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-pro"];
-  let lastError: any = null;
+  let lastErrorText = "";
 
   for (const model of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-      const requestBody = {
-        contents: [
-          {
-            parts: [{ text: `${systemInstruction}\n\n【必須出力フォーマット】\n以下のJSONオブジェクト形式でのみ出力してください：\n{\n  "title": "（ここに詩的で洗練されたオリジナルのタイトル）",\n  "lyrics": "（ここに[Intro], [Verse 1], [Chorus]等を含む本格フル歌詞）",\n  "style_prompt": "（ここに英文カンマ区切りスタイルのプロンプト）",\n  "bpm": "128 BPM",\n  "key": "C Major"\n}\n\n${prompt}` }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.9,
-          topP: 0.95
-        }
-      };
-
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: `${systemInstruction}\n\n【必須出力フォーマット】\n以下のJSONオブジェクト形式でのみ出力してください：\n{\n  "title": "（ここに詩的で洗練されたオリジナルのタイトル）",\n  "lyrics": "（ここに[Intro], [Verse 1], [Chorus]等を含む本格フル歌詞）",\n  "style_prompt": "（ここに英文カンマ区切りスタイルのプロンプト）",\n  "bpm": "128 BPM",\n  "key": "C Major"\n}\n\n${prompt}` }]
+            }
+          ]
+        })
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.warn(`Gemini REST API (${model}) returned status ${res.status}:`, errorText);
-        lastError = new Error(`API Error ${res.status}: ${errorText}`);
+        const errorJson = await res.json().catch(() => ({}));
+        const errMsg = errorJson.error?.message || res.statusText || `HTTP ${res.status}`;
+        console.warn(`Gemini API (${model}) failed: ${errMsg}`);
+        lastErrorText = errMsg;
         continue;
       }
 
@@ -595,13 +594,13 @@ async function callGeminiDirectRest(apiKey: string, prompt: string, systemInstru
           return parsed;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn(`Error invoking Gemini model ${model}:`, err);
-      lastError = err;
+      lastErrorText = err.message || "通信エラー";
     }
   }
 
-  throw lastError || new Error("Gemini API 呼び出しに失敗しました。");
+  throw new Error(lastErrorText || "Gemini APIキーが無効か上限に達しています。");
 }
 
 // メイン生成エントリポイント
@@ -676,8 +675,22 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
       }
     } catch (err: any) {
       console.error("Gemini Direct API call failed:", err);
-      // APIキーエラーが起きた場合はユーザーにブラウザ通知
-      alert(`⚠️ 入力されたGemini APIキーでの通信エラーが発生しました。\n(${err.message || 'API Key Invalid'})\nAPIキーをご確認いただくか、Google AI Studioで新しいキーを再取得してください。`);
+      // 通信エラー時のみわかりやすい通知を画面に出し、DEMO表示に切り替え
+      const apiNotice = `⚠️ APIキー通信エラー: ${err.message || 'キーをご確認ください'}。一時的にDEMOモードで動作しています。`;
+      const fallbackData = generateDynamicFallbackLyrics(theme, genre, gender, tempo, mood);
+      return {
+        id: "song_" + Date.now(),
+        title: generateCreativeTitle(theme, genre, true),
+        lyrics: fallbackData.lyrics,
+        style_prompt: fallbackData.style_prompt,
+        bpm: fallbackData.bpm,
+        key: fallbackData.key,
+        createdAt: Date.now(),
+        isFavorite: false,
+        isDemo: true,
+        notice: apiNotice,
+        requestParams: request
+      };
     }
   }
 
@@ -711,19 +724,19 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
     console.log("Static environment detected, using dynamic fallback lyric engine.");
   }
 
-  // 3. APIキー未設定の場合（またはAPI無効時）の超多様化 11セクション DEMO ジェネレーター
+  // 3. APIキー未設定の場合のDEMOジェネレーター
   const fallbackData = generateDynamicFallbackLyrics(theme, genre, gender, tempo, mood);
   return {
     id: "song_" + Date.now(),
-    title: apiKey ? generateCreativeTitle(theme, genre, false) : fallbackData.title,
+    title: fallbackData.title,
     lyrics: fallbackData.lyrics,
     style_prompt: fallbackData.style_prompt,
     bpm: fallbackData.bpm,
     key: fallbackData.key,
     createdAt: Date.now(),
     isFavorite: false,
-    isDemo: !apiKey,
-    notice: apiKey ? undefined : "※現在はDEMO（サンプル）形式です。画面上部にGemini APIキーを設定すると、AIが毎回完全オリジナルの高クオリティなフル歌詞を即座に生成します。",
+    isDemo: true,
+    notice: "※現在はDEMO（サンプル）形式です。画面上部にGemini APIキーを設定すると、AIが毎回完全オリジナルの高クオリティなフル歌詞を即座に生成します。",
     requestParams: request
   };
 }
