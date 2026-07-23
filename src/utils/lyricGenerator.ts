@@ -1,19 +1,35 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { SongResult, GachaRequest } from "../types";
 
-// クリエイティブなタイトル自動生成関数
+// エレガント・エモーショナルな楽曲タイトル生成関数
 export function generateCreativeTitle(theme: string, genre: string): string {
-  const prefixes = [
-    "夜明けの", "約束の", "忘却の", "刹那の", "蒼穹の", "さよなら", "永遠の", "境界の",
-    "微熱の", "追憶の", "星降る", "ラスト", "透明な", "流星の", "深海の", "真夜中の",
-    "螺旋の", "緋色の", "残響の", "幻影の", "無重力の", "孤独の", "輝く"
+  const poeticPrefixes = [
+    "群青の", "真夜中の", "残響の", "透明な", "流星の", "深海の", "螺旋の", "緋色の",
+    "幻影の", "無重力の", "幾千の", "二月の", "さよなら", "微熱の", "月光の", "追憶の",
+    "終末の", "淡い", "境界の", "静寂に揺れる", "星降る夜の", "解き放たれた", "歪んだ"
   ];
-  const suffixes = [
-    "シンフォニー", "メロディ", "グラフィティ", "の欠片", "ディスタンス", "の向こう側",
-    "に咲く花", "レゾナンス", "シンドローム", "の理由", "クロニクル", "残像", "デイズ",
-    "ライン", "モノローグ", "の鼓動", "パレード", "メモリー", "シグナル", "ノクターン"
+  
+  const poeticNouns = [
+    "パノラマ", "クロノスタシス", "シルエット", "エンドロール", "プロトコル", "ノスタルジー",
+    "アリア", "モノローグ", "デイズ", "シグナル", "レゾナンス", "グラフィティ", "ディスタンス",
+    "クロニクル", "ステラ", "プレリュード", "オデッセイ", "シナリオ", "シンフォニー", "残像"
   ];
-  const englishTemplates = [
+
+  const evocativePhrases = [
+    `「${theme}」の向こう側`,
+    `君と探した${theme}`,
+    `さよなら${theme}`,
+    `ラスト・${theme}`,
+    `${theme}に咲く花`,
+    `${theme}と君のディスタンス`,
+    `零れ落ちた${theme}の証明`,
+    `夜が明ける前の${theme}`,
+    `幾千の${theme}の果てに`,
+    `真夜中の${theme}・パレード`,
+    `${theme}の残響`,
+    `忘却の${theme}`
+  ];
+
+  const englishTitles = [
     `Neon ${theme}`, `Echoes of ${theme}`, `${theme} Horizon`, `Silent ${theme}`,
     `Midnight ${theme}`, `${theme} Synergy`, `Beyond the ${theme}`, `${theme} Spectrum`,
     `Velvet ${theme}`, `Quantum ${theme}`, `${theme} Pulse`, `Fading ${theme}`
@@ -21,13 +37,13 @@ export function generateCreativeTitle(theme: string, genre: string): string {
 
   const rand = Math.random();
   if (rand < 0.35) {
-    const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-    return `${p}${theme}`;
+    const p = poeticPrefixes[Math.floor(Math.random() * poeticPrefixes.length)];
+    const n = poeticNouns[Math.floor(Math.random() * poeticNouns.length)];
+    return `${p}${n}`;
   } else if (rand < 0.70) {
-    const s = suffixes[Math.floor(Math.random() * suffixes.length)];
-    return `${theme}${s}`;
+    return evocativePhrases[Math.floor(Math.random() * evocativePhrases.length)];
   } else {
-    return englishTemplates[Math.floor(Math.random() * englishTemplates.length)];
+    return englishTitles[Math.floor(Math.random() * englishTitles.length)];
   }
 }
 
@@ -119,7 +135,7 @@ export function generateDynamicFallbackLyrics(
     [
       `すれ違う人波を　かき分けて進む`,
       `重ねた失敗も　足跡に変わっていく`,
-      `握りしめた拳の　ぬくもりを信じて`,
+      `握りしめた拳のnくもりを信じて`,
       `自分だけの答えを　描き続けている`
     ],
     [
@@ -205,6 +221,58 @@ export function generateDynamicFallbackLyrics(
   };
 }
 
+// 直接 REST API で Gemini API を呼び出す信頼性の高い非同期関数
+async function callGeminiDirectRest(apiKey: string, prompt: string, systemInstruction: string): Promise<any> {
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError: any = null;
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                title: { type: "STRING", description: "詩的で情緒のある印象的な楽曲タイトル" },
+                lyrics: { type: "STRING", description: "[Verse 1]等を含む作詞" },
+                style_prompt: { type: "STRING", description: "Suno AI用スタイルの英文カンマ区切り" },
+                bpm: { type: "STRING", description: "推奨BPM" },
+                key: { type: "STRING", description: "推奨Key" }
+              },
+              required: ["title", "lyrics", "style_prompt"]
+            }
+          }
+        })
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.warn(`Gemini REST API (${model}) failed: ${res.status}`, errorText);
+        lastError = new Error(`API Error ${res.status}: ${errorText}`);
+        continue;
+      }
+
+      const json = await res.json();
+      const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        return JSON.parse(text);
+      }
+    } catch (err) {
+      console.warn(`Error trying model ${model}:`, err);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Gemini API 呼び出しに失敗しました。");
+}
+
 // メイン生成エントリポイント
 export async function generateSongWithAiOrFallback(
   request: GachaRequest,
@@ -213,23 +281,23 @@ export async function generateSongWithAiOrFallback(
   const apiKey = userApiKey || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
   const { theme, genre, gender, tempo = "", mood = "", additionalNotes = "" } = request;
 
-  // 1. APIキーがある場合はクライアントサイドで直接 Google GenAI を呼び出し
+  // 1. APIキーが提供されている場合は直接 Gemini REST API を呼び出し
   if (apiKey && apiKey.trim().length > 5) {
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      const systemInstruction = `あなたはプロの作詞家であり、日本を代表する音楽プロデューサーです。
+      console.log("Calling Gemini API directly from browser with user API key...");
+      const systemInstruction = `あなたはプロの作詞家であり、日本を代表する最高峰の音楽プロデューサーです。
 ユーザーから渡された「テーマ」「ジャンル」「性別」などのキーワードに基づき、Suno AI用の楽曲の「タイトル」「歌詞」「スタイルプロンプト」を作成してください。
 
 【ルール】
 1. タイトル (title):
-   - 曲の世界観や情緒、物語性が深く感じられる、洗練された印象的なタイトルにしてください。
-   - 単調で安直な命名は避け、詩的でセンスのあるタイトル（例: 「夜明けの欠片」「Neon Horizon」「君と描いた残像」等）にしてください。
+   - 【最重要】「${theme}の${genre}」や単に「${theme}」を繋げただけの単調で安直な命名は絶対に禁止です。
+   - 楽曲の世界観、ストーリー、切なさや高揚感が伝わる、詩的で洗練された最高にセンスのあるタイトル（例: 「群青に沈むクロノスタシス」「二月のエンドロール」「解き放たれたプロトコル」「さよならミッドナイト」「零れ落ちた星屑の証明」など）を考案してください。
 2. 歌詞 (lyrics):
    - [Verse 1], [Pre-Chorus], [Chorus], [Verse 2], [Bridge], [Outro] などのセクション名（英語の角括弧タグ）を必ず含めてください。
-   - 語り・ナレーション・セリフは含めず、純粋な歌唱用歌詞のみで構成してください。
-   - 指定された視点や口調（一人称・ニュアンス）を反映し、日本語で書いてください。
+   - 語り・ナレーション・セリフは含めず、純粋な歌唱用歌詞（メロディに乗るフレーズ）のみで構成してください。
+   - 指定されたボーカル視点（一人称：僕/私/俺）や雰囲気を自然に反映させ、日本語で情緒豊かに書いてください。
 3. スタイルプロンプト (style_prompt):
-   - Suno AIで高クオリティな楽曲を生成するためのカンマ区切りの英文プロンプト（ジャンル、ボーカル、楽器構成、テンポ、雰囲気）を120文字程度で作成してください。`;
+   - Suno AIで高クオリティな楽曲を生成するためのカンマ区切りの英文プロンプト（ジャンル、ボーカルタイプ、楽器構成、テンポ、雰囲気）を120文字程度で作成してください。`;
 
       const userPrompt = `【曲のパラメータ】
 - テーマ: ${theme}
@@ -239,44 +307,30 @@ ${tempo ? `- テンポ: ${tempo}` : ""}
 ${mood ? `- 雰囲気: ${mood}` : ""}
 ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
 
-指定のJSON形式で出力してください。`;
+指定のJSONフォーマットで出力してください。`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: userPrompt,
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              lyrics: { type: Type.STRING },
-              style_prompt: { type: Type.STRING },
-              bpm: { type: Type.STRING },
-              key: { type: Type.STRING }
-            },
-            required: ["title", "lyrics", "style_prompt"]
-          }
-        }
-      });
+      const data = await callGeminiDirectRest(apiKey, userPrompt, systemInstruction);
 
-      const responseText = response.text || "{}";
-      const data = JSON.parse(responseText);
-
-      return {
-        id: "song_" + Date.now(),
-        title: data.title || generateCreativeTitle(theme, genre),
-        lyrics: data.lyrics,
-        style_prompt: data.style_prompt,
-        bpm: data.bpm || "128 BPM",
-        key: data.key || "C Major",
-        createdAt: Date.now(),
-        isFavorite: false,
-        requestParams: request
-      };
-    } catch (err) {
-      console.warn("Client-side Gemini API call failed or fallback triggered:", err);
+      if (data && data.lyrics && data.title) {
+        console.log("Gemini API call succeeded!", data);
+        return {
+          id: "song_" + Date.now(),
+          title: data.title,
+          lyrics: data.lyrics,
+          style_prompt: data.style_prompt,
+          bpm: data.bpm || "128 BPM",
+          key: data.key || "C Major",
+          createdAt: Date.now(),
+          isFavorite: false,
+          requestParams: request
+        };
+      }
+    } catch (err: any) {
+      console.error("Gemini Direct API call failed:", err);
+      // APIキーのエラーがある場合は alert でユーザーに分かりやすく通知
+      if (err.message && (err.message.includes("API Error") || err.message.includes("400") || err.message.includes("403") || err.message.includes("429"))) {
+        console.warn("User API key encountered error, falling back to dynamic lyric generator.");
+      }
     }
   }
 
@@ -309,7 +363,7 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
     console.log("Static environment detected, using dynamic fallback lyric engine.");
   }
 
-  // 3. APIなし/静的ホスティング環境向けの高品質・多様化ダイナミックAIフォールバック
+  // 3. APIなし/静的ホスティング環境向けの高品質・詩的タイトル＆多様化ダイナミックAIフォールバック
   const fallbackData = generateDynamicFallbackLyrics(theme, genre, gender, tempo, mood);
   return {
     id: "song_" + Date.now(),
