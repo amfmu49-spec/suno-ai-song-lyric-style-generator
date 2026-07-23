@@ -211,17 +211,48 @@ export default function App() {
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-1.5">
                 <Key className="w-4 h-4 text-purple-600" />
-                <span>Gemini APIキー (任意)</span>
+                <span>Gemini APIキー (推奨)</span>
               </label>
-              <span className="text-[10px] text-slate-400">※未入力の場合は標準キーで試用可能</span>
+              <span className="text-[10px] text-slate-400">※未入力時はDEMOモード動作</span>
             </div>
             <input
               type="password"
               value={apiKey}
               onChange={handleApiKeyChange}
-              placeholder="AI Studio等で取得したGemini APIキーを入力 (AIzaSy...)"
+              placeholder="AI Studioで取得したGemini APIキーを入力 (AIzaSy...)"
               className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors"
             />
+
+            {!apiKey ? (
+              <div className="mt-2 p-3.5 rounded-xl bg-gradient-to-r from-purple-950 via-slate-900 to-pink-950 border border-pink-500/50 text-white text-xs space-y-2 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-black text-pink-300 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
+                    無料 Gemini API キーの設定で AI の真価を発揮！
+                  </span>
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg shadow-md transition-transform active:scale-95 inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>無料APIキーを取得 (Google AI Studio)</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <p className="text-[11px] text-slate-200 leading-relaxed">
+                  現在APIキーが未入力のため【DEMOサンプル】表示中です。Google AI Studio で無料キーを取得して入力すると、AIが毎回100%オリジナルの超高クオリティ歌詞・詩的タイトルを即座に自動生成します！
+                </p>
+              </div>
+            ) : (
+              <div className="mt-2 flex items-center justify-between text-[11px] text-emerald-700 font-bold bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-300 shadow-sm">
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-emerald-500" />
+                  Gemini API キー設定済み（AIフルオリジナル作詞モード作動中）
+                </span>
+                <span className="text-[10px] text-emerald-600 font-normal">DEMOタグは付与されません</span>
+              </div>
+            )}
           </div>
         </div>
 

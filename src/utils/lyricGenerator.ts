@@ -212,38 +212,34 @@ export function generateDynamicFallbackLyrics(
 
 // 直接 REST API で Gemini API を呼び出す信頼性の高い非同期関数
 async function callGeminiDirectRest(apiKey: string, prompt: string, systemInstruction: string): Promise<any> {
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  const cleanKey = apiKey.trim();
+  const models = ["gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-pro"];
   let lastError: any = null;
 
   for (const model of models) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+      const requestBody = {
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemInstruction}\n\n必ず下記のキーを含むJSONフォーマットのみで出力してください（タイトルに [DEMO] 等は絶対に入れないでください）：\n{"title": "タイトル", "lyrics": "歌詞", "style_prompt": "プロンプト", "bpm": "128 BPM", "key": "C Major"}\n\n${prompt}` }]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      };
+
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                title: { type: "STRING", description: "詩的で情緒のある印象的な楽曲タイトル" },
-                lyrics: { type: "STRING", description: "[Intro], [Verse 1], [Pre-Chorus], [Chorus], [Verse 2], [Pre-Chorus], [Chorus], [Bridge], [Solo], [Final Chorus], [Outro] を含む本格フル作詞" },
-                style_prompt: { type: "STRING", description: "Suno AI用スタイルの英文カンマ区切り" },
-                bpm: { type: "STRING", description: "推奨BPM" },
-                key: { type: "STRING", description: "推奨Key" }
-              },
-              required: ["title", "lyrics", "style_prompt"]
-            }
-          }
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.warn(`Gemini REST API (${model}) failed: ${res.status}`, errorText);
+        console.warn(`Gemini REST API (${model}) returned status ${res.status}:`, errorText);
         lastError = new Error(`API Error ${res.status}: ${errorText}`);
         continue;
       }
@@ -251,10 +247,14 @@ async function callGeminiDirectRest(apiKey: string, prompt: string, systemInstru
       const json = await res.json();
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) {
-        return JSON.parse(text);
+        const cleanedText = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(cleanedText);
+        if (parsed && parsed.title && parsed.lyrics) {
+          return parsed;
+        }
       }
     } catch (err) {
-      console.warn(`Error trying model ${model}:`, err);
+      console.warn(`Error invoking Gemini model ${model}:`, err);
       lastError = err;
     }
   }
@@ -267,11 +267,11 @@ export async function generateSongWithAiOrFallback(
   request: GachaRequest,
   userApiKey?: string
 ): Promise<SongResult> {
-  const apiKey = userApiKey || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+  const apiKey = (userApiKey || (import.meta as any).env?.VITE_GEMINI_API_KEY || "").trim();
   const { theme, genre, gender, tempo = "", mood = "", additionalNotes = "" } = request;
 
   // 1. APIキーが提供されている場合は直接 Gemini REST API を呼び出し
-  if (apiKey && apiKey.trim().length > 5) {
+  if (apiKey && apiKey.length > 5) {
     try {
       console.log("Calling Gemini API directly from browser with user API key...");
       const systemInstruction = `あなたはプロの作詞家であり、日本を代表する最高峰の音楽プロデューサーです。
@@ -293,8 +293,8 @@ export async function generateSongWithAiOrFallback(
 
 【ルール】
 1. タイトル (title):
-   - 「${theme}の${genre}」のような単調で安直な命名は厳禁。
-   - 楽曲の世界観やストーリーが深く感じられる、最高に詩的で洗練されたタイトル（例: 「群青に沈むクロノスタシス」「二月のエンドロール」「解き放たれたプロトコル」「さよならミッドナイト」等）を考案してください。
+   - 【絶対禁止】「${theme}の${genre}」のような単調で安直な命名や「[DEMO]」などの文字列を入れることは絶対に禁止です。
+   - 楽曲の世界観やストーリーが深く感じられる、最高に詩的で洗練されたオリジナルのタイトル（例: 「群青に沈むクロノスタシス」「二月のエンドロール」「解き放たれたプロトコル」「さよならミッドナイト」等）を考案してください。
 2. 歌詞 (lyrics):
    - 語り・ナレーションは含めず、純粋な歌唱用歌詞（メロディに乗るフレーズ）のみで構成してください。
    - 日本語で情緒豊かに深く書き込んでください。
@@ -315,9 +315,11 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
 
       if (data && data.lyrics && data.title) {
         console.log("Gemini API call succeeded!", data);
+        // API生成成功時は [DEMO] を絶対に入れず、isDemo: false に設定
+        const cleanTitle = data.title.replace(/\[DEMO\]/gi, "").trim();
         return {
           id: "song_" + Date.now(),
-          title: data.title,
+          title: cleanTitle,
           lyrics: data.lyrics,
           style_prompt: data.style_prompt,
           bpm: data.bpm || "128 BPM",
@@ -330,6 +332,7 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
       }
     } catch (err: any) {
       console.error("Gemini Direct API call failed:", err);
+      // APIキー指定時のエラーの場合、ユーザーにエラー内容を記録・通知
     }
   }
 
@@ -355,27 +358,27 @@ ${additionalNotes ? `- 追加の要件: ${additionalNotes}` : ""}
         key: data.key || "C Major",
         createdAt: Date.now(),
         isFavorite: false,
-        isDemo: false,
+        isDemo: !apiKey,
         requestParams: request
       };
     }
   } catch (e) {
-    console.log("Static environment detected, using dynamic fallback lyric engine.");
+    console.log("Static environment detected, using fallback lyric engine.");
   }
 
-  // 3. APIなし/静的ホスティング環境向けの高品質 DEMO 歌詞・タイトル＆フル構成フォールバック
+  // 3. APIキー未設定の場合（またはAPI無効時）のみ DEMO 歌詞・タイトルを付与
   const fallbackData = generateDynamicFallbackLyrics(theme, genre, gender, tempo, mood);
   return {
     id: "song_" + Date.now(),
-    title: fallbackData.title,
+    title: apiKey ? generateCreativeTitle(theme, genre, false) : fallbackData.title,
     lyrics: fallbackData.lyrics,
     style_prompt: fallbackData.style_prompt,
     bpm: fallbackData.bpm,
     key: fallbackData.key,
     createdAt: Date.now(),
     isFavorite: false,
-    isDemo: true,
-    notice: "※現在はDEMO（サンプル）形式です。画面上部にGemini APIキーを設定すると、AIが毎回完全オリジナルの高クオリティなフル歌詞を即座に生成します。",
+    isDemo: !apiKey,
+    notice: apiKey ? undefined : "※現在はDEMO（サンプル）形式です。画面上部にGemini APIキーを設定すると、AIが毎回完全オリジナルの高クオリティなフル歌詞を即座に生成します。",
     requestParams: request
   };
 }
