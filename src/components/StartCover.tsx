@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Sparkles, Disc, SkipForward, Upload, Image as ImageIcon, Video as VideoIcon, Trash2, X, Check } from "lucide-react";
+import { Sparkles, Disc, SkipForward, Upload, Image as ImageIcon, Video as VideoIcon, Trash2, X, Check, Volume2, VolumeX } from "lucide-react";
 import { saveMediaBlob, getMediaBlob, deleteMediaBlob } from "../lib/mediaStorage";
 
 interface StartCoverProps {
@@ -41,6 +41,7 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
   const [hasVideo, setHasVideo] = useState<boolean>(true);
   const [imgLoaded, setImgLoaded] = useState<boolean>(false);
   const [hasCustomImg, setHasCustomImg] = useState<boolean>(true);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
 
   // 設定パネルの開閉
   const [showUploader, setShowUploader] = useState<boolean>(false);
@@ -48,6 +49,7 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const mainVideoRef = useRef<HTMLVideoElement>(null);
 
   // 初回読み込みで IndexedDB に保存された画像・動画を取得
   useEffect(() => {
@@ -301,9 +303,10 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
           {/* 9:16 アスペクト比メイン動画フレーム */}
           <div className="relative w-full h-full max-w-[calc(100vh*9/16)] aspect-[9/16] max-h-full flex items-center justify-center overflow-hidden shadow-2xl bg-black">
             <video
+              ref={mainVideoRef}
               src={customVideoSrc || videoCandidates[videoIndex]}
               autoPlay
-              muted
+              muted={isMuted}
               playsInline
               preload="auto"
               onEnded={onTap} // 動画が終わったら自動でメイン画面へ
@@ -324,8 +327,29 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none" />
           </div>
 
-          {/* スキップ案内バナー */}
-          <div className="absolute bottom-10 right-6 z-40">
+          {/* 音声切替 & スキップ案内バナー */}
+          <div className="absolute bottom-10 left-6 right-6 z-40 flex items-center justify-between prevent-tap-advance">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMuted(!isMuted);
+              }}
+              className="flex items-center gap-2 bg-slate-900/90 border border-pink-500/60 backdrop-blur-md px-4 py-2.5 rounded-full text-xs font-black text-white shadow-2xl hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              {isMuted ? (
+                <>
+                  <VolumeX className="w-4 h-4 text-red-400" />
+                  <span>ミュート中 (タップでサウンドON)</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4 h-4 text-emerald-400 animate-bounce" />
+                  <span>サウンド再生中</span>
+                </>
+              )}
+            </button>
+
             <div className="flex items-center gap-2 bg-slate-900/90 border border-purple-500/60 backdrop-blur-md px-4 py-2.5 rounded-full text-xs font-black text-white shadow-2xl animate-pulse">
               <span>タップでスキップ</span>
               <SkipForward className="w-4 h-4 text-pink-400" />
