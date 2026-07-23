@@ -1,0 +1,6 @@
+{
+  "name": "AMU GACHA",
+  "description": "Suno AI用に最適化された楽曲タイトル・歌詞・スタイルプロンプトをAIが自動生成・編集するAIスタジオツール",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
