@@ -10,24 +10,24 @@ const CUSTOM_IMAGE_DB_KEY = "amu_gacha_cover_image";
 const CUSTOM_VIDEO_DB_KEY = "amu_gacha_cover_video";
 
 export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
-  // 画像・動画のフォールバック用パス配列（サーバーpublic内）
+  // 画像・動画のフォールバック用パス配列（サーバーpublic内、GitHub Pages互換のため相対パス）
   const videoCandidates = [
-    "/cover-video.mp4",
-    "/cover-video.mp4.MP4",
-    "/cover-video.MP4",
-    "/cover-video.mov",
-    "/cover-video.MOV",
-    "/cover-video.webm",
-    "/cover-video.m4v"
+    "./cover-video.mp4",
+    "./cover-video.mp4.MP4",
+    "./cover-video.MP4",
+    "./cover-video.mov",
+    "./cover-video.MOV",
+    "./cover-video.webm",
+    "./cover-video.m4v"
   ];
   const imageCandidates = [
-    "/cover.jpg",
-    "/cover.jpg.PNG",
-    "/cover.png",
-    "/cover.PNG",
-    "/cover.jpeg",
-    "/cover.JPG",
-    "/cover.webp"
+    "./cover.PNG",
+    "./cover.png",
+    "./cover.jpg",
+    "./cover.jpg.PNG",
+    "./cover.jpeg",
+    "./cover.JPG",
+    "./cover.webp"
   ];
 
   const [videoIndex, setVideoIndex] = useState(0);
