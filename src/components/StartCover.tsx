@@ -151,6 +151,8 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
     }
   };
 
+  const [isVideoLoaded, setIsVideoLoaded] = useState<boolean>(false);
+
   return (
     <div
       onClick={handleContainerClick}
@@ -263,6 +265,7 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
                 <button
                   type="button"
                   onClick={() => {
+                    setIsVideoLoaded(false);
                     setPhase("video");
                     setShowUploader(false);
                   }}
@@ -297,11 +300,19 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
             muted
             loop
             playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-20 blur-xl pointer-events-none scale-110"
+            className={`absolute inset-0 w-full h-full object-cover opacity-20 blur-xl pointer-events-none scale-110 transition-opacity duration-500 ${
+              isVideoLoaded ? "opacity-20" : "opacity-0"
+            }`}
           />
 
           {/* 9:16 アスペクト比メイン動画フレーム */}
-          <div className="relative w-full h-full max-w-[calc(100vh*9/16)] aspect-[9/16] max-h-full flex items-center justify-center overflow-hidden shadow-2xl bg-black">
+          <div className="relative w-full h-full max-w-[calc(100vh*9/16)] aspect-[9/16] max-h-full flex items-center justify-center overflow-hidden shadow-2xl bg-slate-950">
+            {!isVideoLoaded && (
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950 text-slate-400 space-y-2">
+                <div className="w-8 h-8 rounded-full border-2 border-pink-500 border-t-transparent animate-spin" />
+                <span className="text-xs font-bold text-pink-300 tracking-wider animate-pulse">MEDIA LOADING...</span>
+              </div>
+            )}
             <video
               ref={mainVideoRef}
               src={customVideoSrc || videoCandidates[videoIndex]}
@@ -309,6 +320,8 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
               muted={isMuted}
               playsInline
               preload="auto"
+              onPlaying={() => setIsVideoLoaded(true)}
+              onCanPlay={() => setIsVideoLoaded(true)}
               onEnded={onTap} // 動画が終わったら自動でメイン画面へ
               onError={(e) => {
                 console.warn("Video load error:", e);
@@ -321,7 +334,9 @@ export const StartCover: React.FC<StartCoverProps> = ({ onTap }) => {
                   }
                 }
               }}
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover transition-opacity duration-500 ${
+                isVideoLoaded ? "opacity-100" : "opacity-0"
+              }`}
             />
             {/* 動画上のグラデーション */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none" />
